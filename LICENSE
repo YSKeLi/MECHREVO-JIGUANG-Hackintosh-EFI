@@ -1,0 +1,53 @@
+MIT License
+
+Copyright (c) 2026 atri
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+
+---
+
+## 适用范围
+
+本 MIT 许可仅覆盖本仓库中由本人编写的部分：
+
+```
+EFI/OC/config.plist            配置文件本身（不含其中的第三方组件）
+EFI/OC/ACPI/                   10 个 SSDT 补丁
+docs/                          全部文档
+scripts/                       全部脚本
+README.md / THIRD_PARTY_LICENSES.md / LICENSE
+```
+
+`EFI/OC/Kexts/` 下的所有 kext、`EFI/OC/Drivers/` 下的 `.efi`、
+`EFI/OC/Resources/` 下的主题资源、`EFI/OC/Tools/` 下的工具，
+**版权归各自原作者所有，遵循其原始许可证**。
+
+详见 [THIRD_PARTY_LICENSES.md](THIRD_PARTY_LICENSES.md)。
+
+---
+
+## 免责声明
+
+本项目仅用于学习与技术交流。
+
+- Hackintosh（在非 Apple 硬件上安装 macOS）违反 Apple 的软件许可协议（EULA），使用风险自负。
+- 本仓库**不包含**任何 Apple 原版系统文件或固件。
+- 使用本配置可能导致数据丢失、硬件损坏或系统无法启动，作者不承担任何责任。
+- 请**自行生成** SMBIOS 三码（`SystemSerialNumber` / `MLB` / `SystemUUID` / `ROM`），
+  不要使用他人分享的序列号。

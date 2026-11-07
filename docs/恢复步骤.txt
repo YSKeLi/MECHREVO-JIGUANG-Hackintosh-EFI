@@ -1,0 +1,62 @@
+=====================================================
+ WhateverXe 试验 —— 黑屏 / 显示异常时的恢复步骤
+=====================================================
+
+【什么时候需要这个】
+重启后如果出现：黑屏、只有光标、显示花屏、或者进不去桌面。
+
+【第一步：先试 BIOS】
+1. 开机按 F2 / Del 进 BIOS
+2. 找到显卡 / MUX / Graphics 相关选项
+3. 确认设置为「独显直连 / Discrete / dGPU」
+   （这次试验全程都应该是这个，不要切成混合）
+
+【第二步：进 Windows 改回配置】
+如果第一步没用，说明是 EFI 配置的问题。你有 Windows 分区，用这个方法：
+
+1. 开机在 OpenCore 启动菜单里选 Windows
+2. 右键「命令提示符」→ 以管理员身份运行
+3. 依次执行（每行回车）：
+
+   diskpart
+   list disk
+   select disk 0
+   list partition
+   select partition 1
+   assign letter=Z
+   exit
+
+4. 复制好配置覆盖坏的配置：
+
+   copy /Y Z:\EFI\OC\config.plist.GOOD Z:\EFI\OC\config.plist
+
+5. 取消盘符：
+
+   diskpart
+   select volume Z
+   remove letter=Z
+   exit
+
+6. 重启
+
+【这份 GOOD 配置是什么】
+= 装 WhateverXe 之前的状态：
+  - WhateverGreen 启用
+  - AMFIPass 是原版
+  - 没有 WhateverXe.kext 加载项
+  - boot-args 没有 -allow3d / -disablegfxfirmware / -igfxdvmt
+
+【macOS 里如果还能进系统，更简单】
+把 ~/Desktop/config.plist.before-wex-20261101-200342
+拷回 /Volumes/NO NAME/EFI/OC/config.plist 即可。
+
+【装完图形包之后要撤掉驱动】
+在终端执行：
+   cd ~/Downloads/whateverxe
+   sudo bash uninstall.sh
+然后重启。
+
+【备份清单】
+  桌面上：config.plist.before-wex-20261101-200342
+  ESP 里：EFI/OC/config.plist.GOOD
+  完整 EFI：~/Desktop/EFI-backup-20261101-155341/
