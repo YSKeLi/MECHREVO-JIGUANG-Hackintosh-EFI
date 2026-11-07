@@ -203,7 +203,7 @@ system_profiler SPBluetoothDataType | grep -E "State|Chipset"
 | 驱动版本 | NVRM / NVAccel / NVRMFB / NVRMAGDC / NMXAudio |
 | AuxKC | 带 UUID |
 | Metal | Metal 3 |
-| 内屏 | `PEGP@0`，2560×1600 @180 Hz |
+| 内屏 | `PEGP@0`，2560×1600 `180 Hz` |
 | USB | 10 个端口（HS01-06 + SS01-04） |
 | 音频 | 4 个输出（板载模拟 + HDMI/DP） |
 
