@@ -336,7 +336,6 @@ AUX 是显示链路的边带通道（读 EDID/DPCD、协商链路速率）。读
 | 通用控制 Universal Control | 同上 |
 | iPhone 镜像 | 同上 |
 | AirPlay 接收 | 依赖 AWDL |
-| iMessage / FaceTime | ⚠️ 取决于三码，存在账号风险 |
 
 无线本身可用（802.11 a/b/g/n/ac，5 GHz 正常），**缺的只是 AWDL 这一层**。
 需要 AirDrop/接力请更换博通网卡（如 BCM94360NG）。
