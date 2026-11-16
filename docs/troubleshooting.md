@@ -1,5 +1,7 @@
 # 问题与解决方案
 
+> 2026-11-16 更新。当前版本见 [当前状态](当前状态.md)。混合模式内屏仍未修复；旧激活操作已发生回归。本页第 1、3 节已按 11 月 11 日原始记录修正，详见 [内屏排查更新](内屏排查更新-20261116.md)。本轮未重新测试。
+
 按「现象 → 原因 → 处理 → 状态」记录。**状态**一列很重要：
 
 - ✅ **已验证**：本机复现并修复过
@@ -10,26 +12,15 @@
 
 ---
 
-## 1. 混合显卡模式下，不接外屏内屏不亮
+## 1. 混合显卡模式下内屏不亮
 
-**现象**：BIOS 设为「混合 / Hybrid」时，开机后内屏黑屏或只有背光。接上外接显示器后，内屏恢复显示。
+**当前状态**：仍未修复。用户曾能在接外屏后通过熄屏／唤醒点亮内屏，后来相同操作也失效，需追踪版本回归。
 
-**原因**：✅ 已定位到失败环节。核显的 AUX 通道读不到内屏面板，日志中约 630 次：
+**历史观察**：部分旧启动有大量 AUX 超时；当时也记录过接外屏后显示恢复。这些现象只适用于各自启动现场，不能据此认定“接外屏或假负载即可修复”。
 
-```
-[IGFB][ERROR][AUX] ddi = 0 Time out: 0x5d40023f
-```
+11 月 11 日复核的另一份混合模式黑屏采集已经读出完整 EDID 和 DPCD，链路一度训练成功，约四秒后均衡与符号锁定状态丢失；该次文本日志没有 AUX、DBUF 或 Phase 1 错误。当前重点是接管后的链路保持与版本差异，不能把旧 AUX 错误直接套作唯一原因。
 
-AUX 是 DP 的边带通道（读 EDID/DPCD、协商链路速率）。读不到 → 链路训练失败 → 面板不点亮。
-
-接外屏时 AUX 超时降为 0 或仅初始化阶段短暂出现，内屏即可点亮。**根因（为什么单屏时 AUX 不通）尚未证实**，推测与"存在第二个显示设备时采用不同的显示管道编程路径"有关。
-
-**处理**：
-1. 日常用「独显直连 / Discrete」
-2. 需要核显时接外屏，或用 HDMI 假负载（dummy plug）
-3. 混合模式下内屏固定 **60 Hz**
-
-**状态**：✅ 失败环节已定位；⚠️ 根因未证实；靠规避。
+当前可用基线为独显输出内屏 2560×1600、180 Hz。后续试验需保留可启动配置和配套驱动备份，详见 [内屏排查更新](内屏排查更新-20261116.md)。
 
 ---
 
@@ -51,106 +42,45 @@ AUX 是 DP 的边带通道（读 EDID/DPCD、协商链路速率）。读不到 �
 
 ## 3. 混合模式下内屏只有背光（开机不亮 / 休眠后黑屏）
 
-### 3.1 开机只有背光，没有画面
+### 3.1 已确认的故障现场
 
-**现象**：混合模式 + 接外屏，开机后背光亮、系统在正常渲染（截屏有内容），但面板是黑的。
+核显加速、内屏识别和输出模式已建立，系统认为内屏在线，但物理面板只有背光。11 月 11 日复核的原始 DPCD 记录显示：链路曾在 HBR2 两通道下训练完成，约四秒后只剩时钟恢复完成位，均衡和符号锁定位不再完整。
 
-**原因**：✅ 已定位。核显驱动**假设固件已训练好 eDP 链路，于是跳过链路训练**：
+原文依据“LINK_TRAINING 错误行数为零”推断“驱动跳过了训练”，这个判断不成立。没有错误日志不代表未执行 AUX 或训练；`Complete modeset` 也不能证明物理出画面。
 
-```
-[IGFB][INFO ][DISPLAY] FB0: Complete modeset       ← 报告"完成"
-LINK_TRAINING 行数: 0                              ← 一次训练都没做
-AUX 超时: 0 次                                     ← 一次 AUX 事务都没发
-```
+固件快照为 8 bpc／4 通道，驱动随后请求 10 bpc／2 通道；10 bpc 值来自寄存器写请求，不等于硬件读回。色深值得单变量验证，但尚未证明是唯一原因。
 
-显示引擎被编程、背光点亮，但面板从未收到有效训练过的信号。
+### 3.2 短 Doze 的历史观察
 
-**解决**：做一次**极短的**休眠→唤醒，强制驱动重走完整初始化：
+11 月 6–7 日旧记录曾将 1.0 秒和 1.6 秒的 Doze 标为成功，将较长 Doze 标为失败。后续用户确认相同熄屏／唤醒操作已不再点亮内屏，因此这些样本不足以证明一个通用的 2～5 秒阈值，更不能将 Doze 时长称为唯一判据。
 
-```bash
-bash scripts/激活内屏.sh
-```
+旧操作 `pmset displaysleepnow` 后快速按键，以及 `scripts/激活内屏.sh`，仅保留为历史试验记录，不是当前恢复承诺。脚本返回值、系统显示在线和无错误日志均不能代替物理画面验收；显示电源切换也可能令当前画面中断。
 
-或手动：
+### 3.3 旧失败日志如何使用
 
-```bash
-pmset displaysleepnow
-```
+旧启动曾出现 `AUX Time out`、`Phase 1 of link training failed`、`DBUF 2 power up timeout` 和 `FB0 is not enabled`。应核对它们属于哪次启动、当时的驱动组合和实际显卡路径，再判断失败阶段。
 
-**然后 2 秒内按一下空格键。**
+这些记录不足以证明所有故障都由长 Doze 导致，也不足以断言软件绝无恢复可能。恢复时选择已经验证的启动配置，并按 [恢复步骤](恢复步骤.txt) 区分 EFI 与系统驱动回退。
 
-### 3.2 为什么必须"短 Doze"
-
-**Doze 时长是成败的唯一判据**（实测数据）：
-
-| Doze 持续 | 结果 |
-|---|---|
-| **1.0 秒** | ✅ 成功 |
-| **1.6 秒** | ✅ 成功 |
-| 5.8 秒 | ❌ 失败 |
-| 20 秒 | ❌ 失败 |
-| 42 秒 | ❌ 失败 |
-| 57 秒 | ❌ 失败 + `DBUF 2 power up timeout` |
-
-短 Doze 面板电源不断，eDP 链路保持；长 Doze 面板深度断电，唤醒时必须重新训练链路，而训练需要 AUX —— **AUX 在这台机器上不通**。
-
-> ⚠️ **`caffeinate -u` 不能唤醒屏幕**。它只阻止系统休眠。若用 `pmset displaysleepnow; sleep 3; caffeinate -u -t 2`，屏幕会一直黑到你手动碰它，间隔拉到几十秒，**必然失败**。
-
-### 3.3 失败后的表现（只能重启）
-
-```
-[IGFB][ERROR][DISPLAY] DBUF 2 power up timeout            ← 长 Doze 特有
-[IGFB][ERROR][AUX] ddi = 0 Time out: 0x8d40023f
-[IGFB][ERROR][LINK_TRAINING] writeAUX failed: 0xe00002d6
-[IGFB][ERROR][LINK_TRAINING] writeAUX failed: 0xe00002d8
-[IGFB][ERROR][LINK_TRAINING] readAUX failed: 0xe00002d6
-[IGFB][ERROR][LINK_TRAINING] Phase 1 of link training failed
-                              - notifying AGDC to take display offline
-[IGFB][ERROR][DISPLAY] FB0: Hardware mode set failed, err = 0xe00002bc
-[IGFB][ERROR][DISPLAY] FB0 is not enabled                  ← 面板关闭，每秒刷错
-```
-
-**`FB0 is not enabled` 一旦出现，面板彻底关闭（连背光都没有），只能重启。**
-
-**处理**：重启 → 改用短 Doze 重试。
-
-### 3.4 必须避免的操作
-
-| 操作 | 后果 |
-|---|---|
-| 合盖 | 长 Doze → 唤醒必失败 |
-| 系统睡眠 | 同上 |
-| 系统设置里手动「休眠显示器」 | 同上 |
-| `sleep 3` 之后再唤醒 | 同上 |
-| 用 `caffeinate -u` 当唤醒手段 | 屏幕不会醒，间隔被拉长 |
-
-**状态**：✅ 已定位，✅ 有可用解法（短 Doze），⚠️ 无法做到自动/免手动。
-
-> 完整说明见 [核显驱动方法.md](核显驱动方法.md)。
+**状态**：混合模式内屏仍未修复，最后一次确实点亮的完整版本基线尚未找到。后续一次验证一个变量，同时记录实际画面、输出配置与 DPCD 状态；详见 [内屏排查更新](内屏排查更新-20261116.md)。
 
 ---
 
-## 4. AirDrop / 接力 / 随航 全部不可用
+## 4. 隔空投送可发现但等待或失败
 
-**现象**：隔空投送找不到设备，接力、通用剪贴板、随航均无反应。
+当前采用 ForbiddenItlwm 0.5.4-beta.2 + BTLEAdvFixup 0.9.1。已见双向成功，但两次发送在 Bonjour 设备发现阶段约 45 秒后失败，另一次上传流读取错误。
 
-**原因**：✅ 已验证。`ifconfig awdl0` 报 `interface awdl0 does not exist`——AWDL 接口不存在。Intel 网卡 + AirportItlwm 不提供 AWDL 这一层。
+先确认新版实际加载、awdl0 已启用，再按具体事务核对 ASK、UPLOAD 应答和导入完成；只看到图标或 StateMachine END 不足以认定成功。详见 [隔空投送](隔空投送.md)。
 
-**处理**：无软件方案。需要换博通网卡（BCM94360NG 等）。
-
-**状态**：✅ 已确认不可用。
+历史 AirportItlwm 配置没有 AWDL 的结论不再适用于当前配置；接力、随航等本轮未测。
 
 ---
 
 ## 5. 蓝牙不工作
 
-**现象**：蓝牙开关打不开，或能开但搜不到设备。
+本机当前组合为 IntelBluetoothFirmware 2.5.0 + BlueToolFixup 2.7.3 + BTLEAdvFixup 0.9.1，保留 -ibtcompatbeta 与 -btleadv；IntelBTPatcher 禁用。不要按旧版说明把 IntelBTPatcher 与当前补丁一起重新启用。
 
-**原因**：13 代 CPU + Intel 蓝牙需要额外的兼容补丁。
-
-**处理**：确认 boot-args 里带 `-ibtcompatbeta`，并且 `IntelBluetoothFirmware` + `IntelBTPatcher` + `BlueToolFixup` 三个 kext 都加载。
-
-**状态**：✅ 本机正常工作（系统识别为 `THIRD_PARTY_DONGLE`，属正常）。
+先检查已加载版本、蓝牙开关及对应系统构建，再判断硬件或补丁。系统识别 THIRD_PARTY_DONGLE 是本机观察值，单靠这个名称不能判断所有功能正常。
 
 ---
 
@@ -160,7 +90,7 @@ pmset displaysleepnow
 
 **原因**：NVIDIA 驱动不在 EFI 内，是独立装在 `/Library` 的。
 
-**处理**：安装 [nullmoth/nvidia-macos-driver](https://github.com/nullmoth/nvidia-macos-driver)（本机 2.7.1），装完检查：
+**处理**：安装 [nullmoth/nvidia-macos-driver](https://github.com/nullmoth/nvidia-macos-driver)（本机当前实际加载 2.6.6），装完检查：
 
 ```bash
 kextstat | grep nullmoth        # 应有 NVRM / NVRMFB / NVRMAGDC / NVAccel
@@ -189,33 +119,19 @@ system_profiler SPDisplaysDataType | grep "Metal Support"   # 应为 Metal 3
 
 **现象**：开机直接黑屏、卡住，或 OC 菜单都没了。
 
-**处理**：按 [`恢复步骤.txt`](恢复步骤.txt) 走。核心是用 Windows 分区挂载 ESP 换回备份的 `config.plist`：
+**处理**：按 [恢复步骤](恢复步骤.txt) 区分 EFI 与系统驱动问题。先根据实际磁盘、分区类型和内容确认目标 ESP，再挂载；不要照抄其他机器的磁盘或分区编号。
 
-```
-diskpart
-list disk
-select disk 0
-list partition
-select partition 1
-assign letter=Z
-exit
-```
+保留当前文件作为故障证据，从自己已经启动验证过的配套备份恢复。若改过 config 与驱动，需一起核对恢复；OpenCore.efi 与 BOOTx64.efi 也应配套。保留目标盘的 EFI/Microsoft 和其他引导目录，公开版空身份配置不能直接当本机原配置恢复。
 
-然后把备份的 `config.plist` 复制回 `Z:\EFI\OC\`。
-
-**状态**：✅ 本机实际用过。
+**状态**：历史上用过 EFI 回退；具体目标和恢复文件需按本次故障核实。
 
 ---
 
-## 9. Windows 双系统引导入口消失
+## 9. Windows 双系统入口消失
 
-**现象**：OC 菜单里没有 Windows 了。
+公开目录不含 EFI/Microsoft，部署时必须保留原盘该目录；不要删除整个 EFI 根目录来替换公开包。
 
-**原因**：开源版删掉了 `EFI/Microsoft/`（约 30 MB）。
-
-**处理**：从你自己的 ESP 备份里把 `EFI/Microsoft` 复制回 `EFI/` 根目录，或直接从 BIOS 启动菜单选 Windows。
-
-**状态**：✅ 本机未受影响（实际 ESP 未动）。
+若误删，先从自己的完整 EFI 备份恢复 Microsoft 目录。必要时再用 Windows 恢复介质修引导。单有公开版 BOOT / OC 不能代替 Windows 自己的引导文件。
 
 ---
 
@@ -226,7 +142,7 @@ exit
 **原因**：kext 与系统版本强绑定，特别是 AuxKC 里的第三方驱动。
 
 **处理**：
-1. 升级前备份 ESP（`diskutil mount disk0s1` + `ditto`）
+1. 升级前先用 `diskutil list` 核对实际目标磁盘和 ESP，再挂载并完整备份；磁盘编号不能照抄历史示例。
 2. 升级后如失效，重装对应版本的 WhateverXe / nvidia-macos-driver
 3. 保留一份能启动的旧 EFI
 
@@ -246,45 +162,15 @@ exit
 
 ---
 
-## 12. 音频无声 / 音频设备消失
+## 12. 音频无声或设备消失
 
-**现象**：`system_profiler SPAudioDataType` 里没有任何输出设备，音量显示 `missing value`。
+本机当前加载 VoodooHDA 3.0.2，已枚举扬声器、耳机和模拟麦克风；NMXAudio 未加载。历史曾遇到 NMXAudio 与 VoodooHDA 冲突，相关过程保存在疑难排查记录中。
 
-**原因**：✅ 已复现。macOS 26 不自带 HD Audio 驱动，需要第三方提供。常见冲突是两个音频驱动同时加载、抢同一个 HDA 控制器：
-
-```
-com.nullmoth.NMXAudio (1.0.0)         ← NVIDIA 驱动包 2.7+ 自带
-org.voodoo.driver.VoodooHDA (3.0.2)   ← 旧方案
-```
-
-两者并存时**都不会生成输出设备**。
-
-**处理**：只保留一个（推荐保留 NMXAudio）：
-
-```bash
-# 移走旧的
-sudo mkdir -p /Library/Extensions-disabled
-sudo mv /Library/Extensions/VoodooHDA.kext /Library/Extensions-disabled/
-
-# 重建 AuxKC（必须有 KDK，见 README）
-sudo kmutil rebuild
-
-# 确认已移除
-kmutil inspect | grep -ci voodoo    # 期望 0
-```
-
-**验证**：
-
-```bash
-system_profiler SPAudioDataType | grep 'Output Channels'
-# 期望：板载模拟 + NVIDIA HDMI/DP，共 4 个输出
-```
-
-**状态**：✅ 已验证（NMXAudio 方案，4 个输出设备正常）。
+先核对实际加载的驱动与设备枚举，不要照旧说明把当前 VoodooHDA 直接移除。若决定更换 /Library 中的音频方案，先保存驱动和 AuxKC 的配套备份，按安装器要求处理内核集合，再重启验证实际声音与麦克风。
 
 ---
 
-## 13. 更新 NVIDIA 驱动（或任何 kext）后开不了机
+## 13. 更新系统中的图形 / 音频驱动后开不了机
 
 **现象**：更新驱动后重启，卡在登录界面或 WindowServer 无响应（远程桌面能进）。日志出现：
 
@@ -294,7 +180,7 @@ kernelmanagerd: Img4 error: format neither im4p nor img4
 kernelmanagerd: invalid codeful kernel extension: com.nullmoth.NVRMAGDC v2.7.1 ...
 ```
 
-**原因**：✅ 已验证。macOS 13+ 要求所有第三方 kext 打包进 AuxKC 并签名封存，**重建 AuxKC 需要 KDK**。缺 KDK 时会生成没有 fileset UUID 的非法集合，导致所有 codeful kext 插入失败。
+**原因**：✅ 已验证。本节历史故障涉及安装进 `/Library` 的系统扩展及其 AuxKC；当时重建所需的 KDK 或参数未配套，出现集合内容不一致。EFI 注入的驱动属于另一种加载路径。
 
 **排查**：
 
@@ -328,4 +214,4 @@ kmutil inspect | grep 'auxiliary kext collection'   # 确认有 UUID
 
 **状态**：✅ 已验证（装 KDK 后同一次更新一次成功）。
 
-**预防**：更新任何 kext 前，先确认 `ls /Library/Developer/KDKs/` 非空。
+**范围修正（2026-11-16）**：上文是当时 /Library 驱动与 AuxKC 的排查记录。EFI 注入驱动的更新不需要照此重建 AuxKC；不要只凭一条错误或一个 UUID 判断全部驱动是否可用。改系统驱动时应核对匹配的 KDK、集合内容与实际启动日志。

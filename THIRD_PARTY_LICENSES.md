@@ -1,13 +1,12 @@
 # 第三方组件与许可证
 
-本仓库 `EFI/OC/` 下的二进制组件（kext、`.efi`、主题资源、工具）均来自各自的开源项目，
-版权归原作者所有，遵循其原始许可证。**本仓库仅做打包分发，未做修改。**
+本目录组件来自各自项目及本机匹配构建，按各自原始许可证使用。下方旧清单保留组件来源，当前版本和启用状态以 docs/config-notes.md 与实际 Info.plist 为准。
 
 > 分发 GPL 类组件时，源码可从下方对应项目页获取（GPL 合规要求）。
 
 ---
 
-## 一、Kext（27 个）
+## 一、历史组件清单与当前新增组件
 
 ### 基础 / 补丁注入
 
@@ -41,9 +40,11 @@
 
 | 组件 | 版本 | 版权 | 许可证 | 项目 |
 |---|---|---|---|---|
-| AppleALC | 1.9.8（**未启用**） | vit9696 | BSD-3-Clause | [acidanthera/AppleALC](https://github.com/acidanthera/AppleALC) |
-| AppleALCU | 1.9.8（**未启用**） | vit9696 | BSD-3-Clause | ↑ 同上 |
+| AppleALC | 历史版本 1.9.8（**当前不打包**） | vit9696 | BSD-3-Clause | [acidanthera/AppleALC](https://github.com/acidanthera/AppleALC) |
+| AppleALCU | 历史版本 1.9.8（**当前不打包**） | vit9696 | BSD-3-Clause | ↑ 同上 |
 | SimpleHDA | 1.0.0（**未启用**） | laobamac | 见项目页 | [laobamac/SimpleHDA](https://github.com/laobamac/SimpleHDA) |
+
+AppleALC 的不完整残留已从公开目录清理；AppleALCU 当前也未打包。上表保留历史来源归属，不代表这两个组件可直接启用。实际系统音频仍按当前状态页所列的 VoodooHDA 配置另行安装。
 
 ### 网络
 
@@ -73,7 +74,7 @@
 | UTBMap | 1.1 | 本机生成 | MIT | 由 USBToolBox 在本机导出 |
 | XHCI-unsupported | 0.9.2 | acidanthera 社区 | 见项目页 | [OpenCore 社区](https://github.com/acidanthera) |
 
-### 其他
+### 其他（历史清单；不在当前包中的条目不代表已打包）
 
 | 组件 | 版本 | 版权 | 许可证 | 项目 |
 |---|---|---|---|---|
@@ -145,10 +146,21 @@
 ### GPL 合规说明
 
 本仓库分发的 GPL 组件（VoodooI2C、VoodooPS2、AirportItlwm）**未做任何修改**，
-源码可从上方对应项目页获取。这满足 GPL 关于分发二进制时提供源码途径的要求。
+源码可从上方对应项目页获取。发布前应按各组件许可证核对源码与分发材料；本清单本身不构成完整合规结论。
 
 如原作者认为本仓库的分发方式不妥，请联系删除。
 
 ---
 
-*最后更新：2026-11-07*
+*同步更新：2026-11-16；旧组件清单源于 2026-11-07*
+
+## 2026-11-16 新增 / 变更
+
+| 组件 | 本次版本与状态 | 许可证与源码 |
+| --- | --- | --- |
+| ForbiddenItlwm | 0.5.4-beta.2 Tahoe，启用；内部 0.5.4 | GPL-2.0；[固定 tag 源码](https://github.com/retropineaple/ForbiddenItlwm/tree/v0.5.4-beta.2)，许可证副本 licenses/ForbiddenItlwm-GPL-2.0.txt |
+| BTLEAdvFixup | 0.9.1 Tahoe，启用 | 来自同一 ForbiddenItlwm 发布与源码树，沿用项目许可证副本 |
+| AirportItlwm | 2.4.0，保留但禁用 | 原组件许可证保持不变 |
+| IntelBTPatcher | 2.5.0，保留但禁用 | 原组件许可证保持不变 |
+
+旧列表的数量与状态只是历史清单，不作为当前启用组件统计。NVIDIA 和 VoodooHDA 安装在系统中，不随这份 EFI 打包。MechrevoControl 已按用户要求移除，不属于当前包。
